@@ -3,110 +3,212 @@
 ## Team
 RockStar - Saurabh Bhosale & Krunal Kadam.
 
----
+# Kitchen Prep Time (KPT) Signal Reconstruction Layer (KSRL)
 
-## Problem Understanding
+## 📌 Overview
 
-KPT predictions today rely heavily on merchant-marked Food Order Ready (FOR) signals.
-These signals are operationally biased and introduce systematic noise into model labels.
+Accurate Kitchen Prep Time (KPT) prediction is essential for reliable ETAs, efficient rider dispatch, and overall delivery platform performance.
 
-This results in:
-- Early rider arrivals
-- Idle fleet time
-- ETA volatility
-- Reduced platform efficiency
+In large-scale ecosystems like Zomato (300K+ merchants), even small inaccuracies in readiness signals can lead to:
 
-We identified this as a **data-truth problem rather than a modelling problem**.
+- Early rider arrival and idle waiting
+- ETA fluctuations for customers
+- Poor fleet utilization
+- Increased operational cost
 
----
-
-## Proposed Solution: Kitchen Signal Reconstruction Layer (KSRL)
-
-We introduce a passive intelligence layer that reconstructs true food readiness
-using operational telemetry already available within Zomato’s ecosystem.
-
-No additional hardware or POS integrations are required.
+This project proposes a **system-level solution** — not a new prediction model — to improve the **quality of signals entering existing KPT models**.
 
 ---
 
-## Signals Used
+## ❗ Problem With Current Systems
 
-1. Rider arrival and dwell behaviour  
-2. Merchant historical throughput patterns  
-3. Time-of-day rush modelling  
-4. Cuisine-level preparation variability  
-5. Merchant signal reliability scoring  
+Most platforms rely on **merchant-marked Food Order Ready (FOR)** signals to train and update KPT models.
 
----
+However, these signals are often noisy because:
 
-## Key Innovation: Signal Trust Scoring
+- Merchants mark food ready when the rider arrives (not when food is ready)
+- Kitchen workload includes dine-in and other aggregators, invisible to the platform
+- Manual marking behavior varies across time and restaurant types
+- Human bias introduces inconsistent training labels
 
-We dynamically estimate how reliable each merchant’s FOR signal is
-and adjust its contribution to KPT estimation.
+This leads to **systematic prediction errors**, not model limitations.
 
 ---
 
-## System Architecture
+## 💡 Proposed Solution: Kitchen Signal Reconstruction Layer (KSRL)
 
-Event-driven microservice that:
-- Consumes order lifecycle events
-- Estimates Kitchen Load Index (KLI)
-- Computes Merchant Trust Score (STS)
-- Produces cleaned KPT signal
+We introduce a lightweight **Signal Reconstruction Layer** that corrects readiness signals using real-world behavioral observations — without modifying existing ML models.
 
-This feeds directly into the existing KPT model.
+### Core Idea
 
----
+Instead of trusting merchant input blindly:
 
-## Scalability
+> Infer the true readiness time using rider interaction signals.
 
-- Works for 300K+ merchants
-- No integration dependency
-- O(1) computation per order
-- Stream-processing compatible
+If a rider must wait, that wait reveals hidden preparation time.
+
+
+
+This converts operational behavior into a corrective signal.
 
 ---
 
-## Simulation Results
+## 🧠 Key Components
 
-Using synthetic but behaviourally realistic data:
+### 1️⃣ Merchant Signal Trust Estimation
 
-| Metric | Improvement |
-|--------|-------------|
-Rider Wait Time | ↓ ~20% |
-ETA Prediction Error | ↓ ~12% |
-Operational Stability | Improved |
+We analyze historical dwell behavior to estimate how reliable a merchant’s readiness marking is.
 
----
-
-## A/B Testing Strategy
-
-We simulate a 50/50 rollout and observe statistically significant
-reduction in rider idle time and ETA variance.
+Reliable merchants remain untouched.
+Biased signals are automatically corrected.
 
 ---
 
-## Why This Works
+### 2️⃣ Behavioral Signal Reconstruction
 
-Instead of building a better model,
-we provide the model with **better ground-truth signals**.
+When rider wait is observed:
 
----
-
-## Deployment Plan
-
-Phase 1: Silent evaluation alongside current system  
-Phase 2: Partial rollout in high-density cities  
-Phase 3: Nationwide activation  
+- We reconstruct the actual kitchen completion time.
+- This removes bias introduced by premature FOR marking.
 
 ---
 
-## Conclusion
+### 3️⃣ Rush-Aware Context Modeling
 
-Improving signal quality is the highest-leverage way to enhance
-KPT prediction at Zomato’s scale.
+The simulation accounts for:
 
-Our approach is:
-- Scalable
-- Non-invasive
-- Immediately deployable
+- Lunch/Dinner demand surges
+- Cuisine-specific preparation variability
+- Mixed merchant behaviors (honest vs biased)
+
+This ensures scalability across heterogeneous restaurant ecosystems.
+
+---
+
+### 4️⃣ Model-Agnostic Deployment
+
+KSRL does **not require**:
+
+- Retraining ML models
+- Merchant workflow changes
+- New hardware
+- Additional integrations
+
+It acts as a preprocessing calibration layer.
+
+---
+
+## 📊 Evaluation Philosophy
+
+Traditional evaluation focuses on prediction MAE.
+
+However, operational systems care more about:
+
+- Rider wait time
+- Dispatch synchronization
+- ETA stability
+- Fleet productivity
+
+Therefore, we evaluate business-aligned metrics.
+
+---
+
+## 📈 Simulation Results
+
+| Metric | Baseline | With KSRL |
+|--------|----------|-----------|
+Average Rider Wait | ~2.5 minutes | ~0.03 minutes |
+Dispatch Alignment | Inconsistent | Strongly Improved |
+Operational Efficiency | Lower | Higher |
+
+These results show that **improving signal fidelity alone** can dramatically enhance logistics performance.
+
+---
+
+## 📁 Project Structure
+KPT-Signal-Reconstruction/
+│
+├── src/ # Core simulation and reconstruction logic
+├── outputs/ # Generated evaluation visualizations
+├── run_simulation.py # Main execution script
+├── requirements.txt # Python dependencies
+├── README.md # Project documentation
+
+
+
+---
+
+## ⚙️ How To Run The Project
+
+### 1️⃣ Clone Repository
+git clone <your-repo-url>
+cd KPT-Signal-Reconstruction
+
+---
+
+### 2️⃣ Create Virtual Environment
+python -m venv venv
+venv\Scripts\activate
+
+---
+
+### 3️⃣ Install Dependencies
+
+pip install -r requirements.txt
+
+---
+
+### 4️⃣ Run Simulation
+python run_simulation.py
+
+---
+
+## 📊 Generated Outputs
+
+Visualizations will be saved in:
+outputs
+
+Including:
+
+- Rider wait reduction comparison
+- Rush vs non-rush operational behavior
+- Error distribution visualization
+
+---
+
+## 🏗️ Why This Approach Matters
+
+Most optimization attempts focus on:
+
+> Building more complex prediction models.
+
+But real-world systems often fail due to **input signal distortion**, not model limitations.
+
+KSRL demonstrates that:
+
+✔ Correcting operational signals can outperform model tuning  
+✔ Improvements scale instantly across hundreds of thousands of merchants  
+✔ Deployment risk remains minimal
+
+---
+
+## 🚀 Future Extensions
+
+- Passive sensing of kitchen load signals
+- Cross-platform demand estimation
+- Real-time confidence-adjusted dispatch
+- Integration with adaptive ETA systems
+
+---
+
+## 👨‍💻 Use Case
+
+This project demonstrates how **systems thinking + behavioral signal modeling** can unlock efficiency gains in logistics platforms without requiring disruptive technological changes.
+
+---
+
+## 📜 License / Usage
+
+This project is developed for research and system-design demonstration purposes.
+
+---
